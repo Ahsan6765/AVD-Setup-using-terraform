@@ -1,0 +1,55 @@
+# ============================
+# 🌩️ Terraform & Azure AVD Dev Environment
+# ============================
+
+# Local .terraform directories
+**/.terraform/*
+.terraform.lock.hcl
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Sensitive variable files
+*.tfvars
+*.tfvars.json
+terraform.tfvars
+
+# Auto-generated plan files
+*.tfplan
+*.plan
+
+# Backup & override files
+*.backup
+*.bak
+*.old
+*.orig
+
+# Local environment files
+.env
+.envrc
+
+# IDE/editor files
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+.DS_Store
+
+# OS-specific files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Log files
+*.log
+
+# Local test output
+test-output/
+output/
+tmp/

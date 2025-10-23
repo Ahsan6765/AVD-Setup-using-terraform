@@ -1,5 +1,17 @@
 # modules/vm/main.tf
 
+# resource "azurerm_public_ip" "vm_public_ip" {
+#   count               = var.vm_count
+#   name                = "pip-avd-sh-${count.index + 1}-${var.env}"
+#   location            = var.location
+#   resource_group_name = var.resource_group_name
+#   allocation_method   = "Static"
+#   sku                 = "Standard"
+# }
+// =============================================================================
+// =============================================================================
+// =============================================================================
+// =============================================================================
 locals {
   vm_prefix = "vm-avd-sh"
 }

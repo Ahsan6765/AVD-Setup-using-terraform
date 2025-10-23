@@ -20,6 +20,8 @@ module "network" {
   nsg_name        = var.nsg_name
   admin_public_ip = var.admin_public_ip
   tags            = var.tags
+
+  depends_on = [module.resource_group]
 }
 
 module "avd" {
@@ -30,6 +32,8 @@ module "avd" {
   appgroup_name  = var.appgroup_name
   workspace_name = var.workspace_name
   tags           = var.tags
+  depends_on     = [module.resource_group]
+
 }
 
 module "session_hosts" {
@@ -45,4 +49,7 @@ module "session_hosts" {
   vm_count           = var.vm_count
   environment        = var.environment
   tags               = var.tags
+
+  depends_on = [module.resource_group]
+
 }
