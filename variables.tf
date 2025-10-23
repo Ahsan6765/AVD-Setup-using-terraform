@@ -85,6 +85,13 @@ variable "workspace_name" {
 # -------------------------------
 # VM Variables
 # -------------------------------
+
+variable "env" {
+  description = "Deployment environment name"
+  type        = string
+  default     = "dev"
+}
+
 variable "vm_admin_username" {
   description = "Admin username for AVD session host VMs"
   type        = string
@@ -100,11 +107,11 @@ variable "vm_admin_password" {
 variable "vm_size" {
   description = "Size of the AVD session host VMs"
   type        = string
-  default     = "Standard_D2s_v5"
+  default     = "Standard_B2ms"
 }
 
 variable "vm_count" {
   description = "Number of AVD session host VMs to deploy"
   type        = number
-  default     = 2
+  default     = 1
 }

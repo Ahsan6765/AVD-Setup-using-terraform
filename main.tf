@@ -48,8 +48,7 @@ module "session_hosts" {
   vm_size            = var.vm_size
   vm_count           = var.vm_count
   environment        = var.environment
+  env                = var.env
   tags               = var.tags
-
-  depends_on = [module.resource_group]
-
+  depends_on         = [module.resource_group]
 }

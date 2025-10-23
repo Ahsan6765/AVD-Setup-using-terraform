@@ -14,6 +14,11 @@ variable "registration_token" {
   type      = string
   sensitive = true
 }
+variable "env" {
+  description = "Environment name (e.g., dev, test, prod)"
+  type        = string
+}
+
 variable "vm_admin_username" {
   type = string
 }
