@@ -1,0 +1,1 @@
+We’ll design a step-by-step deployment plan to create an Azure Virtual Desktop (AVD) host pool and its required infrastructure — entirely automated using Terraform.
