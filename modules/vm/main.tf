@@ -13,8 +13,6 @@ resource "azurerm_public_ip" "vm_public_ip" {
 }
 // =============================================================================
 // =============================================================================
-// =============================================================================
-// =============================================================================
 locals {
   vm_prefix = "vm-avd-sh"
 }
@@ -65,24 +63,82 @@ resource "azurerm_windows_virtual_machine" "vm" {
 # --------------------------
 # AVD Registration Extension
 # --------------------------
+# resource "azurerm_virtual_machine_extension" "avd_registration" {
+#   count                = var.vm_count
+#   name                 = "AVDRegistration"
+#   virtual_machine_id   = element(azurerm_windows_virtual_machine.vm[*].id, count.index)
+#   publisher            = "Microsoft.Powershell"
+#   type                 = "DSC"
+#   type_handler_version = "2.73"
+
+#   settings = <<SETTINGS
+# {
+#   "modulesUrl": "https://wvdportalstorageblob.blob.core.windows.net/galleryartifacts/Configuration_11_2023.zip",
+#   "configurationFunction": "Configuration.ps1\\AddSessionHost",
+#   "properties": {
+#       "registrationInfoToken": "${var.registration_token}"
+#   }
+# }
+# SETTINGS
+# }
+
+
+# =======================================================================================================================================
+
+
+# Replace existing azurerm_virtual_machine_extension.avd_registration with this block
 resource "azurerm_virtual_machine_extension" "avd_registration" {
   count                = var.vm_count
   name                 = "AVDRegistration"
   virtual_machine_id   = element(azurerm_windows_virtual_machine.vm[*].id, count.index)
-  publisher            = "Microsoft.Powershell"
-  type                 = "DSC"
-  type_handler_version = "2.73"
+  publisher            = "Microsoft.Compute"
+  type                 = "CustomScriptExtension"
+  type_handler_version = "1.10"
 
-  settings = <<SETTINGS
-{
-  "modulesUrl": "https://wvdportalstorageblob.blob.core.windows.net/galleryartifacts/Configuration_11_2023.zip",
-  "configurationFunction": "Configuration.ps1\\AddSessionHost",
-  "properties": {
-      "registrationInfoToken": "${var.registration_token}"
-  }
+  settings = jsonencode({
+    commandToExecute = <<-POWERSHELL
+      powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ^
+      "$ErrorActionPreference='Stop'; ^
+       $outdir='C:\\Windows\\Temp\\AVDInstall'; ^
+       if (-not (Test-Path $outdir)) { New-Item -Path $outdir -ItemType Directory | Out-Null }; ^
+       $agentFile = Join-Path $outdir 'agent.msi'; ^
+       $bootFile  = Join-Path $outdir 'bootloader.msi'; ^
+       $fwlinks = @('https://go.microsoft.com/fwlink/?linkid=2310011','https://go.microsoft.com/fwlink/?linkid=2311028'); ^
+       try { ^
+         Invoke-WebRequest -Uri $fwlinks[0] -OutFile $agentFile -UseBasicParsing -ErrorAction Stop; ^
+         Invoke-WebRequest -Uri $fwlinks[1] -OutFile $bootFile  -UseBasicParsing -ErrorAction Stop; ^
+       } catch { ^
+         Write-Output 'ERROR: Failed to download installers:'; Write-Output $_.ToString(); exit 2; ^
+       }; ^
+       Write-Output 'Downloaded files:'; Write-Output $agentFile; Write-Output $bootFile; ^
+       # Install agent with registration token
+       $regToken = $env:AVD_REGISTRATION_TOKEN; ^
+       if (-not $regToken) { Write-Output 'ERROR: Registration token missing.'; exit 3 } ^
+       $arg1 = "/i `"$agentFile`" /quiet REGISTRATIONTOKEN=`"$regToken`""; ^
+       $ret = Start-Process -FilePath 'msiexec.exe' -ArgumentList $arg1 -Wait -PassThru; ^
+       if ($ret.ExitCode -ne 0) { Write-Output ('ERROR: agent installer exit code ' + $ret.ExitCode); exit 4 } ^
+       # Install bootloader
+       $arg2 = "/i `"$bootFile`" /quiet"; ^
+       $ret2 = Start-Process -FilePath 'msiexec.exe' -ArgumentList $arg2 -Wait -PassThru; ^
+       if ($ret2.ExitCode -ne 0) { Write-Output ('ERROR: bootloader exit code ' + $ret2.ExitCode); exit 5 } ^
+       # Log success
+       New-Item -Path 'C:\\ProgramData\\AVDRegistration' -ItemType Directory -Force | Out-Null; ^
+       'Installed: ' + (Get-Item $agentFile).FullName + ' , ' + (Get-Item $bootFile).FullName | Out-File -FilePath 'C:\\ProgramData\\AVDRegistration\\install.log' -Encoding utf8 -Append; ^
+       exit 0"
+    POWERSHELL
+  })
+
+  protected_settings = jsonencode({
+    environment = {
+      AVD_REGISTRATION_TOKEN = var.registration_token
+    }
+  })
+
+  depends_on = [azurerm_windows_virtual_machine.vm]
 }
-SETTINGS
-}
+
+
+
 
 # --------------------------
 # Outputs
