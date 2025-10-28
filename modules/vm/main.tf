@@ -97,33 +97,32 @@ resource "azurerm_virtual_machine_extension" "avd_registration" {
 
   settings = jsonencode({
     commandToExecute = <<-POWERSHELL
-      powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ^
-      "$ErrorActionPreference='Stop'; ^
-       $outdir='C:\\Windows\\Temp\\AVDInstall'; ^
-       if (-not (Test-Path $outdir)) { New-Item -Path $outdir -ItemType Directory | Out-Null }; ^
-       $agentFile = Join-Path $outdir 'agent.msi'; ^
-       $bootFile  = Join-Path $outdir 'bootloader.msi'; ^
-       $fwlinks = @('https://go.microsoft.com/fwlink/?linkid=2310011','https://go.microsoft.com/fwlink/?linkid=2311028'); ^
-       try { ^
-         Invoke-WebRequest -Uri $fwlinks[0] -OutFile $agentFile -UseBasicParsing -ErrorAction Stop; ^
-         Invoke-WebRequest -Uri $fwlinks[1] -OutFile $bootFile  -UseBasicParsing -ErrorAction Stop; ^
-       } catch { ^
-         Write-Output 'ERROR: Failed to download installers:'; Write-Output $_.ToString(); exit 2; ^
-       }; ^
-       Write-Output 'Downloaded files:'; Write-Output $agentFile; Write-Output $bootFile; ^
-       # Install agent with registration token
-       $regToken = $env:AVD_REGISTRATION_TOKEN; ^
-       if (-not $regToken) { Write-Output 'ERROR: Registration token missing.'; exit 3 } ^
-       $arg1 = "/i `"$agentFile`" /quiet REGISTRATIONTOKEN=`"$regToken`""; ^
-       $ret = Start-Process -FilePath 'msiexec.exe' -ArgumentList $arg1 -Wait -PassThru; ^
-       if ($ret.ExitCode -ne 0) { Write-Output ('ERROR: agent installer exit code ' + $ret.ExitCode); exit 4 } ^
+      powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "
+      $ErrorActionPreference='Stop';
+       $outdir='C:\\Windows\\Temp\\AVDInstall';
+       if (-not (Test-Path $outdir)) { New-Item -Path $outdir -ItemType Directory | Out-Null };
+       $agentFile = Join-Path $outdir 'agent.msi';
+       $bootFile  = Join-Path $outdir 'bootloader.msi';
+       $fwlinks = @('https://go.microsoft.com/fwlink/?linkid=2310011','https://go.microsoft.com/fwlink/?linkid=2311028');
+       try {
+         Invoke-WebRequest -Uri $fwlinks[0] -OutFile $agentFile -UseBasicParsing -ErrorAction Stop;
+         Invoke-WebRequest -Uri $fwlinks[1] -OutFile $bootFile  -UseBasicParsing -ErrorAction Stop;
+       } catch {
+         Write-Output 'ERROR: Failed to download installers:'; Write-Output $_.ToString(); exit 2;
+       };
+       Write-Output 'Downloaded files:'; Write-Output $agentFile; Write-Output $bootFile;
+  # Install agent with registration token (injected from Terraform var)
+  $regToken = "${var.registration_token}";
+  $arg1 = "/i `"$agentFile`" /quiet REGISTRATIONTOKEN=`"$regToken`"";
+       $ret = Start-Process -FilePath 'msiexec.exe' -ArgumentList $arg1 -Wait -PassThru;
+       if ($ret.ExitCode -ne 0) { Write-Output ('ERROR: agent installer exit code ' + $ret.ExitCode); exit 4 }
        # Install bootloader
-       $arg2 = "/i `"$bootFile`" /quiet"; ^
-       $ret2 = Start-Process -FilePath 'msiexec.exe' -ArgumentList $arg2 -Wait -PassThru; ^
-       if ($ret2.ExitCode -ne 0) { Write-Output ('ERROR: bootloader exit code ' + $ret2.ExitCode); exit 5 } ^
+       $arg2 = "/i `"$bootFile`" /quiet";
+       $ret2 = Start-Process -FilePath 'msiexec.exe' -ArgumentList $arg2 -Wait -PassThru;
+       if ($ret2.ExitCode -ne 0) { Write-Output ('ERROR: bootloader exit code ' + $ret2.ExitCode); exit 5 }
        # Log success
-       New-Item -Path 'C:\\ProgramData\\AVDRegistration' -ItemType Directory -Force | Out-Null; ^
-       'Installed: ' + (Get-Item $agentFile).FullName + ' , ' + (Get-Item $bootFile).FullName | Out-File -FilePath 'C:\\ProgramData\\AVDRegistration\\install.log' -Encoding utf8 -Append; ^
+       New-Item -Path 'C:\\ProgramData\\AVDRegistration' -ItemType Directory -Force | Out-Null;
+       'Installed: ' + (Get-Item $agentFile).FullName + ' , ' + (Get-Item $bootFile).FullName | Out-File -FilePath 'C:\\ProgramData\\AVDRegistration\\install.log' -Encoding utf8 -Append;
        exit 0"
     POWERSHELL
   })
