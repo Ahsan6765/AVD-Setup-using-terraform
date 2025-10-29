@@ -23,3 +23,25 @@ The Terraform configuration automates deployment of the following key components
 
 ## 📂 **Directory Structure**
 
+
+Recreate a fresh registration token (since it expires quickly):
+
+az desktopvirtualization hostpool registration-info reset `
+  --name avd-hostpool-dev `
+  --resource-group ah-avd-rg-dev `
+  --expiration-time "2025-10-29T23:59:00Z"
+
+
+OR run this given below
+
+az desktopvirtualization hostpool registration-info reset --name avd-hostpool-dev --resource-group ah-avd-rg-dev --expiration-time "2025-10-29T23:59:00Z"
+
+
+View the New Token
+
+Once reset, you can get the new token by running:
+
+az desktopvirtualization hostpool registration-info show `
+  --name avd-hostpool-dev `
+  --resource-group ah-avd-rg-dev `
+  --query token -o tsv

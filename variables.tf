@@ -115,3 +115,9 @@ variable "vm_count" {
   type        = number
   default     = 1
 }
+
+# variable "registration_token" {
+#   type        = string
+#   sensitive   = true
+#   description = "AVD Host Pool registration token"
+# }
