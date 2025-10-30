@@ -29,6 +29,8 @@ output "registration_token" {
   sensitive   = true
 }
 
+
+
 output "vm_private_ips" {
   description = "Private IP addresses of session host VMs"
   value       = module.session_hosts.private_ips

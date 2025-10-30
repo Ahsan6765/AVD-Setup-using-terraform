@@ -1,0 +1,83 @@
+# <#
+# .SYNOPSIS
+#     Registers a VM as an AVD session host (no manual RDP required)
+
+# .PARAMETER ResourceGroup
+#     The resource group name where the VM is located.
+
+# .PARAMETER VMName
+#     The name of the VM to register.
+
+# .PARAMETER HostPoolToken
+#     The AVD registration token (generated from the host pool).
+
+# .EXAMPLE
+#     .\Register-AVDSessionHost.ps1 -ResourceGroup "ah-avd-rg-dev" -VMName "vm-avd-sh-1-dev" -HostPoolToken "eyJ0eXAiOiJKV..."
+# #>
+
+# param(
+#     [Parameter(Mandatory = $true)]
+#     [string]$ResourceGroup,
+
+#     [Parameter(Mandatory = $true)]
+#     [string]$VMName,
+
+#     [Parameter(Mandatory = $true)]
+#     [string]$HostPoolToken
+# )
+
+# # -------------------------------
+# # PowerShell Script Body
+# # -------------------------------
+# $AVDScript = @'
+# $ErrorActionPreference = "Stop"
+
+# Write-Output "=== Azure Virtual Desktop Agent Installation Started ==="
+
+# $TempDir = "C:\AVDInstall"
+# if (!(Test-Path $TempDir)) {
+#     New-Item -Path $TempDir -ItemType Directory | Out-Null
+# }
+
+# $AgentURL = "https://go.microsoft.com/fwlink/?linkid=2310011"
+# $BootURL  = "https://go.microsoft.com/fwlink/?linkid=2311028"
+# $AgentPath = "$TempDir\agent.msi"
+# $BootPath  = "$TempDir\bootloader.msi"
+
+# # Download
+# Invoke-WebRequest -Uri $AgentURL -OutFile $AgentPath -UseBasicParsing
+# Invoke-WebRequest -Uri $BootURL  -OutFile $BootPath  -UseBasicParsing
+
+# # Install AVD Agent with Token
+# Start-Process msiexec.exe -ArgumentList "/i `"$AgentPath`" /quiet REGISTRATIONTOKEN=$env:REG_TOKEN" -Wait
+# Start-Process msiexec.exe -ArgumentList "/i `"$BootPath`" /quiet" -Wait
+
+# Write-Output "=== Installation Completed Successfully ==="
+# '@
+
+# # -------------------------------
+# # Execute Script via Run Command
+# # -------------------------------
+# Write-Host "Executing registration script on VM: $VMName ..." -ForegroundColor Cyan
+
+# az vm run-command invoke `
+#   --resource-group $ResourceGroup `
+#   --name $VMName `
+#   --command-id RunPowerShellScript `
+#   --scripts $AVDScript `
+#   --parameters REG_TOKEN=$HostPoolToken `
+#   --query "value[0].message" -o tsv
+
+
+
+
+
+# $token = "eyJhbGciOiJSUzI1NiIsImtpZCI6Ijk0RDQxQUY3MjUyMDFDQzg2MDcwRDQwODI1MkQzMzk2OUEyOEQ0RTciLCJ0eXAiOiJKV1QifQ.eyJSZWdpc3RyYXRpb25JZCI6ImYxZjg1NWE4LTM3NGItNDJkOC1hMTgzLTMwMGNiMjBmNzI0ZCIsIkJyb2tlclVyaSI6Imh0dHBzOi8vcmRicm9rZXItZy11cy1yMS53dmQubWljcm9zb2Z0LmNvbS8iLCJEaWFnbm9zdGljc1VyaSI6Imh0dHBzOi8vcmRkaWFnbm9zdGljcy1nLXVzLXIxLnd2ZC5taWNyb3NvZnQuY29tLyIsIkVuZHBvaW50UG9vbElkIjoiNTg1MjI1ZWMtZjcxZC00NTVhLTk4MTItYjE4ZTM1ODBiOTlhIiwiR2xvYmFsQnJva2VyVXJpIjoiaHR0cHM6Ly9yZGJyb2tlci53dmQubWljcm9zb2Z0LmNvbS8iLCJHZW9ncmFwaHkiOiJVUyIsIkdsb2JhbEJyb2tlclJlc291cmNlSWRVcmkiOiJodHRwczovLzU4NTIyNWVjLWY3MWQtNDU1YS05ODEyLWIxOGUzNTgwYjk5YS5yZGJyb2tlci53dmQubWljcm9zb2Z0LmNvbS8iLCJCcm9rZXJSZXNvdXJjZUlkVXJpIjoiaHR0cHM6Ly81ODUyMjVlYy1mNzFkLTQ1NWEtOTgxMi1iMThlMzU4MGI5OWEucmRicm9rZXItZy11cy1yMS53dmQubWljcm9zb2Z0LmNvbS8iLCJEaWFnbm9zdGljc1Jlc291cmNlSWRVcmkiOiJodHRwczovLzU4NTIyNWVjLWY3MWQtNDU1YS05ODEyLWIxOGUzNTgwYjk5YS5yZGRpYWdub3N0aWNzLWctdXMtcjEud3ZkLm1pY3Jvc29mdC5jb20vIiwiQUFEVGVuYW50SWQiOiI5OWIwNWE3Ny0zMjc5LTQ0MjYtOWEyNy02MzRlYWQ3MGZlMGIiLCJuYmYiOjE3NjE3MjA0NTIsImV4cCI6MTc2MTg5MzI0NywiaXNzIjoiUkRJbmZyYVRva2VuTWFuYWdlciIsImF1ZCI6IlJEbWkifQ.qBJFCDV9Gs9XHowHvL2VYRO4uEmX4Oka74yf4NUg8ruQ2y-pbC7cSx-Ua87E2exzxTAOh7ENQ14JjUZkxzA7HIpQpMscnY1bBdRxK7UOtnAZeUzC1On_gFG5I50JqYj73DBW3i168cIUvY8QGZAIdR8ZLEHg0EI_0qIRl8IQqUI_05lLRSV2wz_VYbVtNZKmJW9w-54T3l_QQIpr3uG-SJPK2Q06qYJ26VJCjuqhFOt21opiGpaM6xhJq_c8cFxZGZyrPgPz1h_n6hzGenC6o57_tvB5Y7d7bkjhEfAF8SY0Xr3YVtpCrlf-vodmGfEQa41KuZlsEBg8eH7fyT1PEw"
+# $scriptText = Get-Content -Raw -Path .\Register-AVDSessionHost.ps1
+
+# az vm run-command invoke `
+#   --resource-group ah-avd-rg-dev `
+#   --name vm-avd-sh-1-dev `
+#   --command-id RunPowerShellScript `
+#   --scripts "$scriptText" `
+#   --parameters REG_TOKEN=$token -o json
